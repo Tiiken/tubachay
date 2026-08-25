@@ -2,7 +2,7 @@ local S, UIS, TS, RS = Instance.new("ScreenGui", game.CoreGui), game:GetService(
 local M, B, T = Instance.new("Frame", S), Instance.new("TextButton", S), Instance.new("TextLabel")
 local TI = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
-local hitboxSize, hitboxTrans, runSpeed, ccLocked, hitboxActive, noclipActive, godmodeActive, fakeDeathActive, mv = 20, 0.6, 50, false, false, false, false, false, false
+local hitboxSize, hitboxTrans, ccLocked, hitboxActive, noclipActive, godmodeActive, mv = 20, 0.6, false, false, false, false, false
 
 -- Hàm tạo bo góc và viền
 local function decorate(o, r, col)
@@ -17,7 +17,7 @@ end
 B.Size, B.Position, B.BackgroundColor3, B.Text, B.TextColor3, B.Font, B.TextSize = UDim2.new(0, 45, 0, 45), UDim2.new(0, 10, 0, 10), Color3.fromRGB(255, 255, 255), "❄️", Color3.fromRGB(0, 122, 255), Enum.Font.SourceSansBold, 20 decorate(B, 10, Color3.fromRGB(220, 225, 230))
 M.Size, M.BackgroundColor3, M.Visible, M.ClipsDescendants = UDim2.new(0, 0, 0, 0), Color3.fromRGB(248, 250, 255), false, true M.Position = UDim2.new(0.5, -95, 0.25, -85) decorate(M, 14, Color3.fromRGB(215, 225, 235))
 
--- Hàm hiển thị thông báo ở góc dưới bên phải, khi biến mất sẽ lùi/thu nhỏ tại chỗ ở góc luôn
+-- Hàm hiển thị thông báo
 local function showNotification(msg)
     local notif = Instance.new("Frame", S)
     notif.Size, notif.Position, notif.BackgroundColor3, notif.BackgroundTransparency = UDim2.new(0, 260, 0, 45), UDim2.new(1, 10, 1, -70), Color3.fromRGB(248, 250, 255), 0.1
@@ -27,13 +27,11 @@ local function showNotification(msg)
     lbl.Size, lbl.Position, lbl.BackgroundTransparency = UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), 1
     lbl.Text, lbl.TextColor3, lbl.Font, lbl.TextSize, lbl.ZIndex = msg, Color3.fromRGB(40, 60, 90), Enum.Font.SourceSansBold, 12, 11
     
-    -- 1. Trượt vào vị trí hiển thị ở góc dưới phải màn hình
     local tweenIn = TS:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Position = UDim2.new(1, -275, 1, -65)
     })
     tweenIn:Play()
     
-    -- 2. Sau 2 giây, thu nhỏ và mờ dần ngay tại góc dưới phải rồi mất hẳn
     task.delay(2.0, function()
         if not notif.Parent then return end
         
@@ -111,21 +109,15 @@ local HitboxBG, HitboxC = createComp(M, "HitBox VIP", UDim2.new(0, 15, 0, 38), f
 local HitboxBar, HitboxBtn, HitboxTxt = createComp(M, "Cỡ Hitbox: 20", UDim2.new(0, 15, 0, 72), true)
 local TransBar, TransBtn, TransTxt = createComp(M, "Độ mờ Hitbox: 60%", UDim2.new(0, 15, 0, 115), true) TransBtn.Position = UDim2.new(0.6, -7, 0.5, -7)
 local NoclipBG, NoclipC = createComp(M, "Xuyên Vật Thể", UDim2.new(0, 15, 0, 158), false)
-
 local GodBG, GodC = createComp(M, "God Mode", UDim2.new(0, 15, 0, 192), false)
-local SpeedBar, SpeedBtn, SpeedTxt = createComp(M, "Tốc độ chạy: 50", UDim2.new(0, 15, 0, 226), true) SpeedBtn.Position = UDim2.new(0.1, -7, 0.5, -7)
 
--- Đổi tên thành Fake Death và chỉnh lại vị trí gọn hơn
-local FakeDeathBG, FakeDeathC = createComp(M, "Fake Death", UDim2.new(0, 15, 0, 270), false)
+local LockButton = Instance.new("TextButton", M) LockButton.Size, LockButton.Position, LockButton.BackgroundColor3, LockButton.Text, LockButton.TextColor3, LockButton.Font, LockButton.TextSize, LockButton.ZIndex = UDim2.new(0, 160, 0, 25), UDim2.new(0, 15, 0, 226), Color3.fromRGB(230, 235, 245), "Off Lock", Color3.fromRGB(80, 90, 105), Enum.Font.SourceSansBold, 12, 3 decorate(LockButton, 6)
 
-local LockButton = Instance.new("TextButton", M) LockButton.Size, LockButton.Position, LockButton.BackgroundColor3, LockButton.Text, LockButton.TextColor3, LockButton.Font, LockButton.TextSize, LockButton.ZIndex = UDim2.new(0, 160, 0, 25), UDim2.new(0, 15, 0, 315), Color3.fromRGB(230, 235, 245), "Off Lock", Color3.fromRGB(80, 90, 105), Enum.Font.SourceSansBold, 12, 3 decorate(LockButton, 6)
-
--- Thu gọn chiều cao menu mở ra (350px)
 B.MouseButton1Click:Connect(function() 
     mv = not mv 
     if mv then 
         M.Visible = true 
-        TS:Create(M, TI, {Size = UDim2.new(0, 190, 0, 350)}):Play() 
+        TS:Create(M, TI, {Size = UDim2.new(0, 190, 0, 260)}):Play() 
     else 
         local ct = TS:Create(M, TI, {Size = UDim2.new(0, 0, 0, 0)}) 
         ct:Play() 
@@ -169,7 +161,6 @@ local function setupSlider(btn, bar, cb)
 end
 setupSlider(HitboxBtn, HitboxBar, function(pct) hitboxSize = math.floor(10 + (pct * 40)) HitboxTxt.Text = "Cỡ Hitbox: " .. hitboxSize end)
 setupSlider(TransBtn, TransBar, function(pct) hitboxTrans = pct TransTxt.Text = "Độ mờ Hitbox: " .. math.floor(pct * 100) .. "%" end)
-setupSlider(SpeedBtn, SpeedBar, function(pct) runSpeed = math.floor(16 + (pct * 84)) SpeedTxt.Text = "Tốc độ chạy: " .. runSpeed end)
 
 HitboxBG.MouseButton1Click:Connect(function() 
     hitboxActive = not hitboxActive 
@@ -187,12 +178,6 @@ GodBG.MouseButton1Click:Connect(function()
     godmodeActive = not godmodeActive 
     TS:Create(GodBG, TweenInfo.new(0.12), {BackgroundColor3 = godmodeActive and Color3.fromRGB(0, 122, 255) or Color3.fromRGB(200, 205, 215)}):Play() 
     TS:Create(GodC, TweenInfo.new(0.12), {Position = godmodeActive and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)}):Play() 
-end)
-
-FakeDeathBG.MouseButton1Click:Connect(function() 
-    fakeDeathActive = not fakeDeathActive 
-    TS:Create(FakeDeathBG, TweenInfo.new(0.12), {BackgroundColor3 = fakeDeathActive and Color3.fromRGB(0, 122, 255) or Color3.fromRGB(200, 205, 215)}):Play() 
-    TS:Create(FakeDeathC, TweenInfo.new(0.12), {Position = fakeDeathActive and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)}):Play() 
 end)
 
 LockButton.MouseButton1Click:Connect(function() 
@@ -216,58 +201,29 @@ RS.Stepped:Connect(function()
     end
 end)
 
--- TỐC ĐỘ, GOD MODE & FAKE DEATH LOGIC
-RS.RenderStepped:Connect(function()
-    pcall(function()
-        local plr = game:GetService("Players").LocalPlayer
-        local char = plr.Character
-        if char and char:FindFirstChildOfClass("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            local root = char.HumanoidRootPart
-            
-            -- Xử lý Fake Death
-            if fakeDeathActive then
-                hum.PlatformStand = true
-                root.CFrame = root.CFrame * CFrame.Angles(math.rad(90), 0, 0)
-            else
-                if hum.PlatformStand then
-                    hum.PlatformStand = false
-                end
-            end
-
-            if hum.MoveDirection.Magnitude > 0 and not fakeDeathActive then
-                if runSpeed > 16 then
-                    hum.WalkSpeed = runSpeed
-                    root.AssemblyLinearVelocity = Vector3.new(
-                        hum.MoveDirection.X * runSpeed,
-                        root.AssemblyLinearVelocity.Y,
-                        hum.MoveDirection.Z * runSpeed
-                    )
-                end
-            else
-                if hum.WalkSpeed ~= 16 and not fakeDeathActive then
-                    hum.WalkSpeed = 16
-                end
-            end
-
-            if godmodeActive then
-                for _, part in ipairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanTouch = false
-                    end
-                end
-            else
-                for _, part in ipairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        part.CanTouch = true
+-- GOD MODE CHỐNG CHẾT (ADVANCED GOD MODE FOR ARSENAL)
+RS.PreSimulation:Connect(function()
+    if godmodeActive then
+        pcall(function()
+            local plr = game:GetService("Players").LocalPlayer
+            local char = plr.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    -- Khóa trạng thái không cho Humanoid chuyển sang Dead
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                    
+                    -- Nếu máu tụt xuống mức nguy hiểm, lập tức khóa máu tối đa
+                    if hum.Health < hum.MaxHealth then
+                        hum.Health = hum.MaxHealth
                     end
                 end
             end
-        end
-    end)
+        end)
+    end
 end)
 
--- HITBOX LOGIC
+-- HITBOX LOGIC (CẢ CẬN CHIẾN LẪN TẦM XA)
 task.spawn(function()
     local players = game:GetService("Players")
     while task.wait(0.05) do 
@@ -297,12 +253,18 @@ task.spawn(function()
                         root.Transparency = hitboxTrans
                         root.Color = Color3.fromRGB(255, 0, 0)
                         root.Material = Enum.Material.Neon
-                        root.CanCollide = false
+                        root.CanCollide = true
                         root.Massless = true
+                        
+                        for _, part in ipairs(model:GetChildren()) do
+                            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                                part.CanTouch = true
+                            end
+                        end
                     else
                         root.Size = Vector3.new(2, 2, 1)
                         root.Transparency = 1
-                        root.CanCollide = false
+                        root.CanCollide = true
                     end
                 end
             end
