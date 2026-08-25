@@ -105,7 +105,7 @@ task.spawn(function()
     end
 end)
 
-local HitboxBG, HitboxC = createComp(M, "HitBox VIP", UDim2.new(0, 15, 0, 38), false)
+local HitboxBG, HitboxC = createComp(M, "HITBOX VIP", UDim2.new(0, 15, 0, 38), false)
 local HitboxBar, HitboxBtn, HitboxTxt = createComp(M, "Cỡ Hitbox: 20", UDim2.new(0, 15, 0, 72), true)
 local TransBar, TransBtn, TransTxt = createComp(M, "Độ mờ Hitbox: 60%", UDim2.new(0, 15, 0, 115), true) TransBtn.Position = UDim2.new(0.6, -7, 0.5, -7)
 local NoclipBG, NoclipC = createComp(M, "Xuyên Vật Thể", UDim2.new(0, 15, 0, 158), false)
@@ -201,19 +201,24 @@ RS.Stepped:Connect(function()
     end
 end)
 
--- GOD MODE CHỐNG CHẾT (ADVANCED GOD MODE FOR ARSENAL)
+-- GOD MODE LOGIC
+local disabledStates = {
+    Enum.HumanoidStateType.Dead,
+    Enum.HumanoidStateType.Ragdoll,
+    Enum.HumanoidStateType.FallingDown
+}
+
 RS.PreSimulation:Connect(function()
     if godmodeActive then
         pcall(function()
             local plr = game:GetService("Players").LocalPlayer
-            local char = plr.Character
+            local char = plr and plr.Character
             if char then
                 local hum = char:FindFirstChildOfClass("Humanoid")
                 if hum then
-                    -- Khóa trạng thái không cho Humanoid chuyển sang Dead
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                    
-                    -- Nếu máu tụt xuống mức nguy hiểm, lập tức khóa máu tối đa
+                    for _, state in ipairs(disabledStates) do
+                        hum:SetStateEnabled(state, false)
+                    end
                     if hum.Health < hum.MaxHealth then
                         hum.Health = hum.MaxHealth
                     end
@@ -223,48 +228,33 @@ RS.PreSimulation:Connect(function()
     end
 end)
 
--- HITBOX LOGIC (CẢ CẬN CHIẾN LẪN TẦM XA)
+-- HITBOX LOGIC (TỰ ĐỘNG QUÉT TOÀN BỘ MOBS / NPCS / MONSTERS TRONG WORKSPACE)
 task.spawn(function()
     local players = game:GetService("Players")
-    while task.wait(0.05) do 
+    while task.wait(0.3) do 
         pcall(function()
             local lPlayer = players.LocalPlayer
-            local targets = {}
-            
-            for _, p in ipairs(players:GetPlayers()) do 
-                if p ~= lPlayer and p.Character then 
-                    table.insert(targets, p.Character) 
-                end 
-            end
-            
-            if workspace:FindFirstChild("Enemies") then 
-                for _, e in ipairs(workspace.Enemies:GetChildren()) do 
-                    table.insert(targets, e) 
-                end 
-            end
-            
-            for _, model in ipairs(targets) do
-                local root = model:FindFirstChild("HumanoidRootPart")
-                local hum = model:FindFirstChildOfClass("Humanoid")
-                
-                if root and hum and hum.Health > 0 then
-                    if hitboxActive then
-                        root.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-                        root.Transparency = hitboxTrans
-                        root.Color = Color3.fromRGB(255, 0, 0)
-                        root.Material = Enum.Material.Neon
-                        root.CanCollide = true
-                        root.Massless = true
-                        
-                        for _, part in ipairs(model:GetChildren()) do
-                            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                                part.CanTouch = true
-                            end
+            local myChar = lPlayer and lPlayer.Character
+
+            -- Quét tự động toàn bộ Workspace tìm Model có Humanoid + HumanoidRootPart
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj ~= myChar then
+                    local root = obj:FindFirstChild("HumanoidRootPart")
+                    local hum = obj:FindFirstChildOfClass("Humanoid")
+
+                    if root and hum and hum.Health > 0 then
+                        if hitboxActive then
+                            root.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+                            root.Transparency = hitboxTrans
+                            root.Color = Color3.fromRGB(255, 0, 0)
+                            root.Material = Enum.Material.Neon
+                            root.CanCollide = false
+                            root.CanTouch = true
+                        else
+                            root.Size = Vector3.new(2, 2, 1)
+                            root.Transparency = 1
+                            root.CanCollide = false
                         end
-                    else
-                        root.Size = Vector3.new(2, 2, 1)
-                        root.Transparency = 1
-                        root.CanCollide = true
                     end
                 end
             end
