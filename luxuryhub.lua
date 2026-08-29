@@ -1,4 +1,4 @@
--- LUXURY HUB - HEADSHOT PREDICTION VERSION
+-- LUXURY HUB - PERFECT HEAD LOCK VERSION
 local CoreGui = game:GetService("CoreGui")
 
 -- 1. Dọn dẹp GUI cũ nếu có để tránh trùng lặp
@@ -40,11 +40,10 @@ local lastInputTime = 0
 local IDLE_THRESHOLD = 0.02 
 
 ----------------------------------------------------------------------
--- THIẾT LẬP AIMBOT VÀO ĐẦU & ĐÓN ĐẦU (PREDICTION)
+-- THIẾT LẬP AIMBOT KHÓA CHUẨN XÁC VÀO ĐẦU (100% ĐÚNG TÂM)
 ----------------------------------------------------------------------
-local FOV_RADIUS = 120      -- Tăng nhẹ vùng quét để dễ bắt mục tiêu gần tâm nhất
+local FOV_RADIUS = 130      -- Vùng quét mục tiêu gần tâm màn hình nhất
 local AIM_SMOOTHNESS = 0    -- Khóa tức thì không độ trễ
-local PREDICTION_FACTOR = 0.12 -- Hệ số dự đoán đón đầu hướng di chuyển
 
 -- Hàm trang trí UI
 local function decorate(o, r, col, thick)
@@ -448,9 +447,9 @@ end
 Players.PlayerAdded:Connect(createRedDotESP)
 
 ----------------------------------------------------------------------
--- THUẬT TOÁN TÌM ĐẦU ĐỊCH GẦN TÂM (POV) NHẤT + ĐÓN ĐẦU
+-- THUẬT TOÁN TÌM ĐẦU ĐỊCH GẦN TÂM (POV) NHẤT (CHUẨN 100% ĐẦU)
 ----------------------------------------------------------------------
-local function getClosestHeadWithPrediction()
+local function getClosestHead()
     local closestHead, minDist = nil, FOV_RADIUS
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
 
@@ -460,7 +459,6 @@ local function getClosestHeadWithPrediction()
                 local hum = p.Character:FindFirstChildOfClass("Humanoid")
                 local head = p.Character:FindFirstChild("Head")
                 
-                -- Chỉ bắt đầu sống, có máu và tìm đúng phần Head
                 if hum and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead and head then
                     local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
                     
@@ -477,14 +475,8 @@ local function getClosestHeadWithPrediction()
         end)
     end
 
+    -- Trả về trực tiếp vị trí tâm Head để không bị lệch hướng
     if closestHead then
-        local character = closestHead.Parent
-        local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-        if rootPart then
-            local velocity = rootPart.AssemblyLinearVelocity
-            -- Trả về vị trí Đầu cộng thêm khoảng cách dự đoán đón đầu khi địch di chuyển
-            return closestHead.Position + (Vector3.new(velocity.X, 0, velocity.Z) * PREDICTION_FACTOR)
-        end
         return closestHead.Position
     end
     
@@ -492,7 +484,7 @@ local function getClosestHeadWithPrediction()
 end
 
 ----------------------------------------------------------------------
--- VÒNG LẶP AIMBOT LIA TÂM LIÊN TỤC VÀO ĐẦU
+-- VÒNG LẶP AIMBOT KHÓA TÂM VÀO ĐẦU LIÊN TỤC
 ----------------------------------------------------------------------
 RS.RenderStepped:Connect(function(deltaTime)
     if aimbotActive then
@@ -500,9 +492,9 @@ RS.RenderStepped:Connect(function(deltaTime)
             local isMovingCamera = isDraggingRight or ((tick() - lastInputTime) < IDLE_THRESHOLD)
             if isMovingCamera then return end
 
-            local targetHeadPosition = getClosestHeadWithPrediction()
+            local targetHeadPosition = getClosestHead()
             if targetHeadPosition then
-                -- Khóa góc nhìn trực tiếp vào vị trí Đầu dự đoán
+                -- Khóa góc nhìn chuẩn xác hoàn toàn vào chính giữa đầu địch
                 local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, targetHeadPosition)
                 
                 if AIM_SMOOTHNESS == 0 then
