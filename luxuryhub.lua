@@ -1,7 +1,6 @@
--- LUXURY HUB - PERFECT HEAD LOCK VERSION
+-- LUXURY HUB - HEAD SHOT AIMBOT
 local CoreGui = game:GetService("CoreGui")
 
--- 1. Dọn dẹp GUI cũ nếu có để tránh trùng lặp
 if CoreGui:FindFirstChild("LuxuryHubGui") then
     CoreGui.LuxuryHubGui:Destroy()
 end
@@ -23,29 +22,25 @@ local T = Instance.new("TextLabel")
 
 local TI = TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
--- Các biến trạng thái của Menu
 local hitboxSize = 20
 local hitboxTrans = 0.6
 local ccLocked = false
 local hitboxActive = false
 local noclipActive = false
-local godmodeActive = false
 local aimbotActive = false
 local espActive = false
 local mv = false
 
--- Biến theo dõi trạng thái xoay màn hình ở nửa bên phải
-local isDraggingRight = false
-local lastInputTime = 0
-local IDLE_THRESHOLD = 0.02 
+local isDraggingRightSide = false
+local touchStartTime = 0
+local touchStartPosition = Vector2.zero
 
 ----------------------------------------------------------------------
--- THIẾT LẬP AIMBOT KHÓA CHUẨN XÁC VÀO ĐẦU (100% ĐÚNG TÂM)
+-- THIẾT LẬP AIMBOT: KHÓA CHÍNH XÁC VÀO ĐẦU (HEAD)
 ----------------------------------------------------------------------
-local FOV_RADIUS = 130      -- Vùng quét mục tiêu gần tâm màn hình nhất
-local AIM_SMOOTHNESS = 0    -- Khóa tức thì không độ trễ
+local FOV_RADIUS = 75           
+local currentLockedTarget = nil 
 
--- Hàm trang trí UI
 local function decorate(o, r, col, thick)
     if not o then return end
     local corner = Instance.new("UICorner", o)
@@ -57,9 +52,7 @@ local function decorate(o, r, col, thick)
     end
 end
 
-----------------------------------------------------------------------
--- THÔNG BÁO CHÀO MỪNG
-----------------------------------------------------------------------
+-- Thông báo
 local function showCustomNotif(titleText, bodyText, duration)
     pcall(function()
         local NotifFrame = Instance.new("Frame", S)
@@ -123,11 +116,9 @@ local function showCustomNotif(titleText, bodyText, duration)
     end)
 end
 
-showCustomNotif("LUXURY HUB 👑", "Địt con cụ chúng mày bố LUXURY HUB chúng mày tới rồi đây 👑", 4)
+showCustomNotif("LUXURY HUB 👑", "Đã tải thành công! 🎯", 4)
 
-----------------------------------------------------------------------
--- GIAO DIỆN MENU
-----------------------------------------------------------------------
+-- Giao diện Menu
 B.Size = UDim2.new(0, 0, 0, 0)
 B.Position = UDim2.new(0, 32, 0, 32)
 B.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -151,7 +142,6 @@ decorate(M, 14)
 
 local MenuBg = Instance.new("ImageLabel", M)
 MenuBg.Size = UDim2.new(1, 0, 1, 0)
-MenuBg.Position = UDim2.new(0, 0, 0, 0)
 MenuBg.BackgroundTransparency = 1
 MenuBg.Image = "rbxassetid://111581247806961"
 MenuBg.ScaleType = Enum.ScaleType.Crop
@@ -160,7 +150,6 @@ decorate(MenuBg, 14)
 
 local Overlay = Instance.new("Frame", M)
 Overlay.Size = UDim2.new(1, 0, 1, 0)
-Overlay.Position = UDim2.new(0, 0, 0, 0)
 Overlay.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 Overlay.BackgroundTransparency = 0.65
 Overlay.ZIndex = 2
@@ -168,9 +157,7 @@ decorate(Overlay, 14)
 
 local OuterBorder = Instance.new("UIStroke", M)
 OuterBorder.Color = Color3.fromRGB(255, 255, 255)
-OuterBorder.Transparency = 0
 OuterBorder.Thickness = 2.5
-OuterBorder.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 T.Parent = M
 T.Size = UDim2.new(1, 0, 0, 30)
@@ -245,11 +232,10 @@ local TransBar, TransBtn, TransTxt = createComp(M, "Độ mờ Hitbox: 60%", UDi
 TransBtn.Position = UDim2.new(0.6, -7, 0.5, -7)
 
 local NoclipBG, NoclipC = createComp(M, "Xuyên Vật Thể", UDim2.new(0, 15, 0, 210), false)
-local GodBG, GodC = createComp(M, "God Mode", UDim2.new(0, 15, 0, 242), false)
 
 local LockButton = Instance.new("TextButton", M)
 LockButton.Size = UDim2.new(0, 160, 0, 24)
-LockButton.Position = UDim2.new(0, 15, 0, 276)
+LockButton.Position = UDim2.new(0, 15, 0, 244)
 LockButton.BackgroundColor3 = Color3.fromRGB(230, 235, 245)
 LockButton.Text = "Off Lock Menu"
 LockButton.TextColor3 = Color3.fromRGB(80, 90, 105)
@@ -262,7 +248,7 @@ B.MouseButton1Click:Connect(function()
     mv = not mv 
     if mv then 
         M.Visible = true 
-        TS:Create(M, TI, {Size = UDim2.new(0, 190, 0, 310)}):Play() 
+        TS:Create(M, TI, {Size = UDim2.new(0, 190, 0, 278)}):Play() 
     else 
         local ct = TS:Create(M, TI, {Size = UDim2.new(0, 0, 0, 0)}) 
         ct:Play() 
@@ -327,6 +313,7 @@ end)
 
 AimBG.MouseButton1Click:Connect(function() 
     aimbotActive = not aimbotActive 
+    if not aimbotActive then currentLockedTarget = nil end
     TS:Create(AimBG, TweenInfo.new(0.12), {BackgroundColor3 = aimbotActive and Color3.fromRGB(0, 122, 255) or Color3.fromRGB(200, 205, 215)}):Play() 
     TS:Create(AimC, TweenInfo.new(0.12), {Position = aimbotActive and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}):Play() 
 end)
@@ -349,12 +336,6 @@ NoclipBG.MouseButton1Click:Connect(function()
     TS:Create(NoclipC, TweenInfo.new(0.12), {Position = noclipActive and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}):Play() 
 end)
 
-GodBG.MouseButton1Click:Connect(function() 
-    godmodeActive = not godmodeActive 
-    TS:Create(GodBG, TweenInfo.new(0.12), {BackgroundColor3 = godmodeActive and Color3.fromRGB(0, 122, 255) or Color3.fromRGB(200, 205, 215)}):Play() 
-    TS:Create(GodC, TweenInfo.new(0.12), {Position = godmodeActive and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}):Play() 
-end)
-
 LockButton.MouseButton1Click:Connect(function() 
     ccLocked = not ccLocked 
     LockButton.Text = ccLocked and "Lock Menu" or "Off Lock Menu" 
@@ -363,49 +344,46 @@ LockButton.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------------------------
--- HỆ THỐNG KIỂM TRA XOAY MÀN HÌNH BÊN PHẢI
+-- LOGIC KIỂM SOÁT BÊN PHẢI MÀN HÌNH
 ----------------------------------------------------------------------
 UIS.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         if input.Position.X >= (Camera.ViewportSize.X / 2) then
-            isDraggingRight = true
-            lastInputTime = tick()
+            touchStartTime = tick()
+            touchStartPosition = Vector2.new(input.Position.X, input.Position.Y)
+            isDraggingRightSide = false 
         end
     end
 end)
 
 UIS.InputChanged:Connect(function(input, gameProcessed)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        if isDraggingRight and input.Position.X >= (Camera.ViewportSize.X / 2) then
-            lastInputTime = tick()
+        if input.Position.X >= (Camera.ViewportSize.X / 2) then
+            local currentPos = Vector2.new(input.Position.X, input.Position.Y)
+            if (currentPos - touchStartPosition).Magnitude > 10 then
+                isDraggingRightSide = true
+                currentLockedTarget = nil
+            end
         end
     end
 end)
 
 UIS.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isDraggingRight = false
+        isDraggingRightSide = false
     end
 end)
 
-----------------------------------------------------------------------
--- HỆ THỐNG ESP CHẤM ĐỎ
-----------------------------------------------------------------------
+-- ESP Chấm đỏ
 local function createRedDotESP(player)
     if player == LocalPlayer then return end
-
     local function applyESP(character)
         if not character then return end
-        
         task.spawn(function()
             local head = character:WaitForChild("Head", 10)
             local hum = character:WaitForChild("Humanoid", 10)
             if not head or not hum then return end
-
-            if head:FindFirstChild("LuxuryRedDotESP") then
-                head.LuxuryRedDotESP:Destroy()
-            end
+            if head:FindFirstChild("LuxuryRedDotESP") then head.LuxuryRedDotESP:Destroy() end
 
             local bgui = Instance.new("BillboardGui")
             bgui.Name = "LuxuryRedDotESP"
@@ -419,7 +397,6 @@ local function createRedDotESP(player)
             dot.Size = UDim2.new(1, 0, 1, 0)
             dot.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
             dot.BorderSizePixel = 0
-
             local corner = Instance.new("UICorner", dot)
             corner.CornerRadius = UDim.new(1, 0)
 
@@ -434,24 +411,37 @@ local function createRedDotESP(player)
             end)
         end)
     end
-
-    if player.Character then
-        applyESP(player.Character)
-    end
+    if player.Character then applyESP(player.Character) end
     player.CharacterAdded:Connect(applyESP)
 end
 
-for _, p in ipairs(Players:GetPlayers()) do
-    createRedDotESP(p)
-end
+for _, p in ipairs(Players:GetPlayers()) do createRedDotESP(p) end
 Players.PlayerAdded:Connect(createRedDotESP)
 
 ----------------------------------------------------------------------
--- THUẬT TOÁN TÌM ĐẦU ĐỊCH GẦN TÂM (POV) NHẤT (CHUẨN 100% ĐẦU)
+-- HÀM TÌM KIẾM MỤC TIÊU (ĐẦU)
 ----------------------------------------------------------------------
-local function getClosestHead()
-    local closestHead, minDist = nil, FOV_RADIUS
+local function getClosestTarget()
     local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+    if currentLockedTarget and currentLockedTarget.Parent then
+        local character = currentLockedTarget.Parent
+        local hum = character:FindFirstChildOfClass("Humanoid")
+        local head = character:FindFirstChild("Head")
+        
+        if hum and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead and head then
+            local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+            if onScreen and pos.Z > 0 then
+                local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                if dist <= (FOV_RADIUS * 1.5) then
+                    return head.Position
+                end
+            end
+        end
+    end
+
+    currentLockedTarget = nil
+    local closestTargetPos, minDist = nil, FOV_RADIUS
 
     for _, p in ipairs(Players:GetPlayers()) do
         pcall(function()
@@ -463,11 +453,11 @@ local function getClosestHead()
                     local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
                     
                     if onScreen and pos.Z > 0 then
-                        -- Tính khoảng cách chính xác từ tâm màn hình tới đầu địch
                         local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
                         if dist < minDist then
                             minDist = dist
-                            closestHead = head
+                            closestTargetPos = head.Position
+                            currentLockedTarget = head
                         end
                     end
                 end
@@ -475,41 +465,34 @@ local function getClosestHead()
         end)
     end
 
-    -- Trả về trực tiếp vị trí tâm Head để không bị lệch hướng
-    if closestHead then
-        return closestHead.Position
-    end
-    
-    return nil
+    return closestTargetPos
 end
 
 ----------------------------------------------------------------------
--- VÒNG LẶP AIMBOT KHÓA TÂM VÀO ĐẦU LIÊN TỤC
+-- VÒNG LẶP AIMBOT
 ----------------------------------------------------------------------
 RS.RenderStepped:Connect(function(deltaTime)
     if aimbotActive then
         pcall(function()
-            local isMovingCamera = isDraggingRight or ((tick() - lastInputTime) < IDLE_THRESHOLD)
-            if isMovingCamera then return end
+            if isDraggingRightSide then
+                currentLockedTarget = nil
+                return
+            end
 
-            local targetHeadPosition = getClosestHead()
-            if targetHeadPosition then
-                -- Khóa góc nhìn chuẩn xác hoàn toàn vào chính giữa đầu địch
-                local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, targetHeadPosition)
-                
-                if AIM_SMOOTHNESS == 0 then
-                    Camera.CFrame = targetCFrame
-                else
-                    local alpha = math.clamp(1 - (AIM_SMOOTHNESS ^ deltaTime), 0, 1)
-                    Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, alpha)
-                end
+            local targetPosition = getClosestTarget()
+            if targetPosition then
+                Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPosition)
+            else
+                currentLockedTarget = nil
             end
         end)
+    else
+        currentLockedTarget = nil
     end
 end)
 
 ----------------------------------------------------------------------
--- CÁC TÍNH NĂNG PHỤ TRỢ
+-- CÁC TÍNH NĂNG PHỤ TRỢ (NOCLIP & HITBOX)
 ----------------------------------------------------------------------
 RS.Stepped:Connect(function() 
     if noclipActive then 
@@ -521,31 +504,6 @@ RS.Stepped:Connect(function()
             end 
         end)
     end 
-end)
-
-RS.Heartbeat:Connect(function()
-    if godmodeActive then
-        pcall(function()
-            local char = LocalPlayer.Character
-            if char then
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                local root = char:FindFirstChild("HumanoidRootPart")
-                if hum then
-                    hum.Health = hum.MaxHealth
-                    hum.PlatformStanding = false
-                    hum.Sit = false
-                    local state = hum:GetState()
-                    if state == Enum.HumanoidStateType.Ragdoll or state == Enum.HumanoidStateType.FallingDown then
-                        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-                    end
-                end
-                if root then
-                    root.Velocity = Vector3.new(0, root.Velocity.Y, 0)
-                    root.RotVelocity = Vector3.new(0, 0, 0)
-                end
-            end
-        end)
-    end
 end)
 
 task.spawn(function() 
